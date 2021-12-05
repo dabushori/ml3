@@ -1,4 +1,13 @@
-import numpy as np, sys
+import numpy as np
+import sys
+
+
+def sigmoid(x): return 1 / (1 + np.exp(-x))
+
+
+def softmax(x):
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum(axis=0)
 
 
 class NeuralNetwork:
@@ -6,19 +15,39 @@ class NeuralNetwork:
         self.dims = dims
         self.nclasses = dims[-1]
         self.w_layers = dict()
+        self.bias_layers = dict()
         for i, (d1, d2) in enumerate(zip(dims[:-1], dims[1:])):
-            self.w_layers[i] = np.zeros((d2,d1))
+            self.w_layers[i] = np.zeros((d2, d1))
+            self.bias_layers[i] = np.zeros(d2)
         self.activation = activation_func
-        
-    def loss(self, x, y, w):
-        None
-        
+
+    def loss(self, h_last):
+        res = -np.log(softmax(h_last))
+        return np.sum(res, axis=0)
+
     def train(self, trainx_data, trainy_data):
-        None
-        
-    def predict(self, x):
-        None
-        
+        for x, y in zip(trainx_data, trainy_data):
+            fprop_cache = self.predict(x, y)
+            # TODO backprop
+
+    def predict(self, x, y=None):
+        fprop_cache = {'x': x}
+        h_prev = x
+        for i, (w, b) in enumerate(zip(self.w_layers, self.bias_layers)):
+            z_i = w * h_prev + b
+            fprop_cache[f'z_{i}'] = z_i
+            h_i = self.activation(z_i)
+            fprop_cache[f'h_{i}'] = h_i
+            h_prev = h_i
+        if not y:
+            return h_prev
+        else:
+            fprop_cache['y'] = y
+            fprop_cache['yhat'] = h_prev
+            fprop_cache['loss'] = self.loss(h_prev)
+            return fprop_cache
+
+
 # main function
 def main():
     if len(sys.argv) < 4:
@@ -27,16 +56,15 @@ def main():
 
     trainx_path, trainy_path, testx_path = sys.argv[1:4]
     trainx_data = np.loadtxt(trainx_path)
-    trainy_data = np.loadtxt(trainy_path, dtype=int) # load classes as int instead of floats
+    trainy_data = np.loadtxt(trainy_path, dtype=int)
     testx_data = np.loadtxt(testx_path)
     output_fname = 'test_y'
-    
     
     # ex2 main
     # with open(output_fname, 'w') as output_log:
     #     # Exercise constants
     #     nclasses = 3
-    #     dim = 5 
+    #     dim = 5
     #     # KNN params
     #     knn_k = 5
     #     knn_norm = min_max
@@ -59,13 +87,13 @@ def main():
     #     pa_norm = z_score
     #     pa_k_folds = 10
     #     pa = PA(nclasses, pa_epochs, dim)
-        
+
     #     # train all the algorithms (or set the data in KNN's case)
     #     knn.set_data(trainx_data.copy(), trainy_data.copy(), knn_norm)
     #     perceptron.train(trainx_data.copy(), trainy_data.copy(), perceptron_k_folds, perceptron_norm)
     #     svm.train(trainx_data.copy(), trainy_data.copy(), svm_k_folds, svm_norm)
     #     pa.train(trainx_data.copy(), trainy_data.copy(), pa_k_folds, pa_norm)
-        
+
     #     if testx_data.ndim == 1:
     #         knn_yhat = knn.predict(testx_data)
     #         perceptron_yhat = perceptron.predict(testx_data)
