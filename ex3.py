@@ -2,7 +2,8 @@ from operator import mul
 import numpy as np
 import sys
 
-np.seterr(all='raise')
+# # for debug
+# np.seterr(all='raise')
 
 def sigmoid(x): return 1 / (1 + np.exp(-x))
 def sigmoid_der(x): return sigmoid(x) * (1-sigmoid(x))
@@ -32,8 +33,7 @@ class NeuralNetwork:
         self.activation_der = activation_der
 
     def loss(self, y, yhat):
-        return float(np.sum(-np.log(yhat[y])))
-        # return float(-np.log(yhat[y]))
+        return float(-np.log(yhat[y]))
 
     def forward_prop(self, x, y, w_layers, bias_layers):
         x = np.array([x]).T
@@ -81,12 +81,12 @@ class NeuralNetwork:
         # one epoch
         min_loss = np.math.inf
         for j in range(epochs):
+            curr_w = {i: self.w_layers[i].copy() for i in self.w_layers}
+            curr_b = {i: self.bias_layers[i].copy() for i in self.bias_layers}
             
             print(f'epoch {j} started')
             shuffle(trainx_data, trainy_data)
             
-            curr_w = {i: self.w_layers[i].copy() for i in self.w_layers}
-            curr_b = {i: self.bias_layers[i].copy() for i in self.bias_layers}
             batches = self.divide_to_batches(trainx_data, trainy_data, batch_size)
             for batch_x, batch_y in batches:
                 dW_total = {}
@@ -107,6 +107,10 @@ class NeuralNetwork:
             curr_loss = 0
             for x, y in zip(trainx_data, trainy_data):
                 curr_loss += self.forward_prop(x, y, curr_w, curr_b)['loss']
+            
+            # self.w_layers = curr_w
+            # self.bias_layers = curr_b
+            # print(f'{curr_loss = }')
             if curr_loss < min_loss:
                 self.w_layers = curr_w
                 self.bias_layers = curr_b
@@ -162,15 +166,16 @@ def main():
     labels = np.loadtxt('test_labels')
     labels_hat = np.zeros(labels.shape)
     with open(output_fname, 'w') as output_log:
-        net = NeuralNetwork([784, 20, 10], sigmoid, sigmoid_der, 0.1)
+        net_learning_rate = 0.01
         net_batch_size = 20
-        net_epochs = 5
+        net_epochs = 10
+        net = NeuralNetwork([784, 20, 10], sigmoid, sigmoid_der, net_learning_rate)
         net.train(trainx_data, trainy_data, net_batch_size, net_epochs)
         for i, x in enumerate(testx_data):
             yhat = net.predict(x)
             labels_hat[i] = yhat
             print(f'{yhat}', file=output_log)
-        print(f'correct: {(labels_hat == labels).sum()} / {labels_hat.shape[0]}')
+        print(f'correct: {(labels_hat == labels).sum()} / {labels_hat.shape[0]} ({100 * (labels_hat == labels).sum() / labels_hat.shape[0]}%)')
 
     # # real code
     # with open(output_fname, 'w') as output_log:
