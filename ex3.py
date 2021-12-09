@@ -134,11 +134,6 @@ class NeuralNetwork:
         res = softmax(h_prev)
         return res if vec_return else np.argmax(res)
 
-def z_score(data):
-    mean = np.mean(data, axis=0)
-    stand_dev = np.std(data, axis=0)
-    return lambda x: (x - mean) / stand_dev
-
 
 # main function
 def main():
@@ -153,9 +148,6 @@ def main():
     trainx_data = np.loadtxt(trainx_path) / 255
     trainy_data = np.loadtxt(trainy_path, dtype=int)
     testx_data = np.loadtxt(testx_path) / 255
-    
-    z = z_score(trainx_data)
-    trainx_data = np.array([z(x) for x in trainx_data])
 
     # # real code
     # if len(sys.argv) < 4:
@@ -180,7 +172,7 @@ def main():
         net = NeuralNetwork(net_dims, sigmoid, sigmoid_der, net_learning_rate)
         net.train(trainx_data, trainy_data, net_batch_size, net_epochs)
         for i, x in enumerate(testx_data):
-            yhat = net.predict(z(x))
+            yhat = net.predict(x)
             labels_hat[i] = yhat
             print(f'{yhat}', file=output_log)
         delta = time.time() - start
